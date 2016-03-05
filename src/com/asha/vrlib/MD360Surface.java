@@ -1,19 +1,21 @@
 package com.asha.vrlib;
 
 import android.graphics.SurfaceTexture;
+import android.media.MediaCodec;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
+import android.util.Log;
 import android.view.Surface;
+import com.example.mediacodecrtmp.DataManager;
 
 import javax.microedition.khronos.opengles.GL10;
+
+import java.nio.ByteBuffer;
 
 import static com.asha.vrlib.common.GLUtil.glCheck;
 
 
 /**
- * Created by hzqiujiadi on 16/1/25.
- * hzqiujiadi ashqalcn@gmail.com
- *
  * copied from surfaceTexture
  * Created by nitro888 on 15. 4. 5..
  * https://github.com/Nitro888/NitroAction360
@@ -32,7 +34,11 @@ public class MD360Surface {
         this.mOnSurfaceReadyListener = onSurfaceReadyListener;
     }
 
-    public void resize(int width,int height){
+    public Surface getSurface() {
+        return mSurface;
+    }
+
+    public void resize(int width, int height) {
         boolean changed = false;
         if (mWidth == width && mHeight == height) changed = true;
         mWidth = width;
@@ -40,7 +46,7 @@ public class MD360Surface {
 
         // resize the texture
         if (changed && mSurfaceTexture != null)
-            mSurfaceTexture.setDefaultBufferSize(mWidth,mHeight);
+            mSurfaceTexture.setDefaultBufferSize(mWidth, mHeight);
 
     }
 
@@ -91,16 +97,124 @@ public class MD360Surface {
         return textures[0];
     }
 
-    public void onDrawFrame() {
-        if(mGlSurfaceTexture == SURFACE_TEXTURE_EMPTY)
+    public void onDrawFrame(MediaCodec decoder) {
+        if (mGlSurfaceTexture == SURFACE_TEXTURE_EMPTY)
             return;
 
-        synchronized (this){
+        if (decoder == null) {
+            Log.e("MD360Surface", "onDrawFrame--->decoder == null");
+            return;
+        }
+        ByteBuffer[] inputBuffers = decoder.getInputBuffers();
+        ByteBuffer[] outputBuffers = decoder.getOutputBuffers();
+        MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
+        long startMs = System.currentTimeMillis();
+
+        Log.i("MyActivity", "while start...");
+        if (DataManager.getInstance().inputBytesQueue.size() > 0) {
+            Log.i("MyActivity", "before decoder.dequeueInputBuffer(0)");
+            int inIndex = decoder.dequeueInputBuffer(0);
+            Log.i("MyActivity", "inIndex = " + inIndex);
+            if (inIndex >= 0) {
+                byte[] buf = DataManager.getInstance().inputBytesQueue.poll();
+                Log.i("MyActivity", "inIndex >= 0, inputBytesQueue.poll()");
+                int startIndex = 0;
+                byte[] temp = null;
+                if (buf != null) {
+                    if (buf[11] == 23 && buf[12] == 1) {
+                        // I帧数据
+                        startIndex = 100;
+
+                    } else if (buf[11] == 39 && buf[12] == 1) {
+                        // p帧数据
+                        if (buf[25] == 12) {
+                            startIndex = 38;
+                        } else if (buf[25] == 11) {
+                            startIndex = 37;
+                        }
+                    }
+                    int len = (buf[startIndex] & 0x000000FF) << 24 | (buf[startIndex + 1] & 0x000000FF) << 16 |
+                            (buf[startIndex + 2] & 0x000000FF) << 8 | buf[startIndex + 3] & 0x000000FF;
+                    temp = new byte[len + 8];
+                    temp[0] = 0;
+                    temp[1] = 0;
+                    temp[2] = 0;
+                    temp[3] = 1;
+                    temp[len + 4] = 0;
+                    temp[len + 5] = 0;
+                    temp[len + 6] = 0;
+                    temp[len + 7] = 1;
+
+                    System.arraycopy(buf, startIndex + 4, temp, 4, len);
+
+                    int sampleSize = temp.length;
+                    ByteBuffer buffer = inputBuffers[inIndex];
+                    buffer.clear();
+                    buffer.put(temp, 0, sampleSize);
+                    if (sampleSize < 0) {
+                        Log.i("MyActivity", "sampleSize < 0");
+                        // We shouldn't stop the playback at this point, just pass the EOS
+                        // flag to decoder, we will get it again from the
+                        // dequeueOutputBuffer
+                        Log.d("MyActivity", "InputBuffer BUFFER_FLAG_END_OF_STREAM");
+                        decoder.queueInputBuffer(inIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                    } else {
+                        decoder.queueInputBuffer(inIndex, 0, sampleSize, 0, 0);
+                    }
+                }
+            } else {
+                Log.i("MyActivity", "inIndex < 0");
+            }
+        }
+
+
+        int outIndex = decoder.dequeueOutputBuffer(info, 10000);
+        switch (outIndex) {
+            case MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED:
+                Log.i("MyActivity", "INFO_OUTPUT_BUFFERS_CHANGED");
+                outputBuffers = decoder.getOutputBuffers();
+                break;
+            case MediaCodec.INFO_OUTPUT_FORMAT_CHANGED:
+                Log.i("MyActivity", "New format " + decoder.getOutputFormat());
+                break;
+            case MediaCodec.INFO_TRY_AGAIN_LATER:
+                Log.i("MyActivity", "dequeueOutputBuffer timed out!");
+                break;
+            default:
+                ByteBuffer buffer = outputBuffers[outIndex];
+
+                Log.v("MyActivity", "We can't use this buffer but render it due to the API limit, " + buffer);
+
+                // We use a very simple clock to keep the video FPS, or the video
+                // playback will be too fast
+                while (info.presentationTimeUs / 1000 > System.currentTimeMillis() - startMs) {
+                    try {
+                        Thread.sleep(20);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        break;
+                    }
+                }
+                Log.i("MyActivity", "releaseOutputBuffer");
+                decoder.releaseOutputBuffer(outIndex, true);
+                break;
+
+        }
+
+        // All decoded frames have been rendered, we can stop playing now
+        if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+            Log.i("MyActivity", "OutputBuffer BUFFER_FLAG_END_OF_STREAM");
+            decoder.stop();
+            decoder.release();
+        }
+
+
+        synchronized (this) {
             mSurfaceTexture.updateTexImage();
         }
     }
 
-    public interface IOnSurfaceReadyListener{
+    public interface IOnSurfaceReadyListener {
         void onSurfaceReady(Surface surface);
     }
 }

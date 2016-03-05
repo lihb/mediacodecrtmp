@@ -1,19 +1,21 @@
 package com.asha.vrlib;
 
 import android.content.Context;
+import android.media.MediaCodec;
+import android.media.MediaFormat;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
+import android.util.Log;
 import android.view.MotionEvent;
-
 import com.asha.vrlib.objects.MDAbsObject3D;
 import com.asha.vrlib.objects.MDSphere3D;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 
 /**
- * Created by hzqiujiadi on 16/1/22.
- * hzqiujiadi ashqalcn@gmail.com
  *
  * @see Builder
  * @see #with(Context)
@@ -24,7 +26,9 @@ public class MD360Renderer implements GLSurfaceView.Renderer {
 
 	private MDAbsObject3D mObject3D;
 	private MD360Program mProgram;
-	private MD360Surface mSurface;
+	private MD360Surface mD360Surface;
+
+	private MediaCodec decoder;
 
 	// final
 	private final Context mContext;
@@ -33,7 +37,7 @@ public class MD360Renderer implements GLSurfaceView.Renderer {
 
 	private MD360Renderer(Builder params){
 		mContext = params.context;
-		mSurface = params.surface;
+		mD360Surface = params.surface;
 		mDirector = new MD360Director();
 		mObject3D = new MDSphere3D();
 		mProgram = new MD360Program();
@@ -54,6 +58,24 @@ public class MD360Renderer implements GLSurfaceView.Renderer {
 		initProgram();
 		initTexture();
 		initObject3D();
+
+		try {
+			decoder = MediaCodec.createDecoderByType("video/avc");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		byte[] header_sps = {0x00, 0x00, 0x00, 0x01, 0x67, 0x42, (byte)0xc0, 0x16, (byte)0x92, 0x54, 0x05, 0x01, (byte)0xed, 0x08, 0x00, 0x00, 0x03, 0x00, 0x08, 0x00, 0x00, 0x03,
+				0x00,  (byte)0xf3, 0x00, 0x00, 0x04,  (byte)0xe7,  (byte)0xc0, 0x00, 0x4e, 0x5e, 0x5e,  (byte)0xf7, 0x00,  (byte)0xf1, 0x62,  (byte)0xea};
+		byte[] header_pps = {0x00, 0x00, 0x00, 0x01, 0x68,  (byte)0xce, 0x32, 0x48};
+		MediaFormat mediaFormat = MediaFormat.createVideoFormat("video/avc", 640, 480);
+		mediaFormat.setByteBuffer("csd-0", ByteBuffer.wrap(header_sps));
+		mediaFormat.setByteBuffer("csd-1", ByteBuffer.wrap(header_pps));
+		decoder.configure(mediaFormat, mD360Surface.getSurface(), null, 0);
+		if (decoder == null) {
+			Log.e(TAG, "decoder == null");
+			return;
+		}
+		decoder.start();
 	}
 
 	@Override
@@ -62,7 +84,7 @@ public class MD360Renderer implements GLSurfaceView.Renderer {
 		GLES20.glViewport(0, 0, width, height);
 
 		// Update surface
-		mSurface.resize(width,height);
+		mD360Surface.resize(width,height);
 
 		// Update Projection
 		mDirector.updateProjection(width,height);
@@ -80,7 +102,7 @@ public class MD360Renderer implements GLSurfaceView.Renderer {
         
         // Bind the texture to this unit.
 //         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mTextureDataHandle);
-		mSurface.onDrawFrame();
+		mD360Surface.onDrawFrame(decoder);
         
         // Tell the texture uniform sampler to use this texture in the shader by binding to texture unit 0.
         GLES20.glUniform1i(mProgram.getTextureUniformHandle(), 0);
@@ -92,12 +114,13 @@ public class MD360Renderer implements GLSurfaceView.Renderer {
 		GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, mObject3D.getNumIndices());
 	}
 
+
 	private void initProgram(){
 		mProgram.build(mContext);
 	}
 
 	private void initTexture(){
-		mSurface.createSurface();
+		mD360Surface.createSurface();
 	}
 
 	private void initObject3D(){

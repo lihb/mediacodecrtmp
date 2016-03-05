@@ -6,8 +6,6 @@ import android.opengl.Matrix;
 import android.view.MotionEvent;
 
 /**
- * Created by hzqiujiadi on 16/1/22.
- * hzqiujiadi ashqalcn@gmail.com
  *
  * response for model * view * projection
  */

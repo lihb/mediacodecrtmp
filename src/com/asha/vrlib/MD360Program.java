@@ -8,8 +8,7 @@ import static com.asha.vrlib.common.GLUtil.createAndLinkProgram;
 import static com.asha.vrlib.common.GLUtil.readTextFileFromRaw;
 
 /**
- * Created by hzqiujiadi on 16/1/22.
- * hzqiujiadi ashqalcn@gmail.com
+ *
  */
 public class MD360Program {
     private int mMVPMatrixHandle;

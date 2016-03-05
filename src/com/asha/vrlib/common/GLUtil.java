@@ -18,10 +18,7 @@ import java.nio.FloatBuffer;
 import java.util.ArrayList;
 
 /**
- * Created by nitro888 on 15. 4. 5..
  *
- * modify by hzqiujiadi on 16/1/22.
- * hzqiujiadi ashqalcn@gmail.com
  */
 public class GLUtil {
 

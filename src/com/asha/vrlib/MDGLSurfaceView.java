@@ -10,8 +10,7 @@ import android.view.View;
 import com.asha.vrlib.common.GLUtil;
 
 /**
- * Created by hzqiujiadi on 16/1/26.
- * hzqiujiadi ashqalcn@gmail.com
+ *
  */
 public class MDGLSurfaceView extends GLSurfaceView {
 
