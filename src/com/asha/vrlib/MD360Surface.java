@@ -2,6 +2,7 @@ package com.asha.vrlib;
 
 import android.graphics.SurfaceTexture;
 import android.media.MediaCodec;
+import android.media.MediaFormat;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.util.Log;
@@ -9,7 +10,7 @@ import android.view.Surface;
 import com.example.mediacodecrtmp.DataManager;
 
 import javax.microedition.khronos.opengles.GL10;
-
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import static com.asha.vrlib.common.GLUtil.glCheck;
@@ -22,6 +23,7 @@ import static com.asha.vrlib.common.GLUtil.glCheck;
  */
 public class MD360Surface {
     public static final int SURFACE_TEXTURE_EMPTY = 0;
+    private static final String TAG = "MD360Surface";
 
     private Surface mSurface;
     private SurfaceTexture mSurfaceTexture;
@@ -29,6 +31,8 @@ public class MD360Surface {
     private int mWidth;
     private int mHeight;
     private IOnSurfaceReadyListener mOnSurfaceReadyListener;
+
+    private MediaCodec decoder;
 
     public MD360Surface(IOnSurfaceReadyListener onSurfaceReadyListener) {
         this.mOnSurfaceReadyListener = onSurfaceReadyListener;
@@ -64,6 +68,25 @@ public class MD360Surface {
             if (mOnSurfaceReadyListener != null)
                 mOnSurfaceReadyListener.onSurfaceReady(mSurface);
         }
+
+        try {
+            decoder = MediaCodec.createDecoderByType("video/avc");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        byte[] header_sps = {0x00, 0x00, 0x00, 0x01, 0x67, 0x64, 0x00, 0x1f, (byte)0xac, (byte)0xd9, 0x40, (byte)0xfc, (byte)0x10, 0x79, 0x67, (byte)0x9a, (byte)0x80, (byte)0x86, (byte)0x83, 0x20, 0x00, 0x00,
+                0x03,  (byte)0x00, 0x20, 0x00, 0x00,  (byte)0x07,  (byte)0x91, (byte)0xe3, 0x06, 0x32, (byte)0xc0};
+        byte[] header_pps = {0x00, 0x00, 0x00, 0x01, 0x68,  (byte)0xef, (byte)0xbc, (byte)0xb0};
+        MediaFormat mediaFormat = MediaFormat.createVideoFormat("video/avc", 1000, 500);
+        mediaFormat.setByteBuffer("csd-0", ByteBuffer.wrap(header_sps));
+        mediaFormat.setByteBuffer("csd-1", ByteBuffer.wrap(header_pps));
+        decoder.configure(mediaFormat, mSurface, null, 0);
+        if (decoder == null) {
+            Log.e(TAG, "decoder == null");
+            return;
+        }
+        decoder.start();
+
     }
 
     private void releaseSurface() {
@@ -97,7 +120,7 @@ public class MD360Surface {
         return textures[0];
     }
 
-    public void onDrawFrame(MediaCodec decoder) {
+    public void onDrawFrame(/*MediaCodec decoder*/) {
         if (mGlSurfaceTexture == SURFACE_TEXTURE_EMPTY)
             return;
 
@@ -110,9 +133,7 @@ public class MD360Surface {
         MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
         long startMs = System.currentTimeMillis();
 
-        Log.i("MyActivity", "while start...");
         if (DataManager.getInstance().inputBytesQueue.size() > 0) {
-            Log.i("MyActivity", "before decoder.dequeueInputBuffer(0)");
             int inIndex = decoder.dequeueInputBuffer(0);
             Log.i("MyActivity", "inIndex = " + inIndex);
             if (inIndex >= 0) {
@@ -121,17 +142,17 @@ public class MD360Surface {
                 int startIndex = 0;
                 byte[] temp = null;
                 if (buf != null) {
-                    if (buf[11] == 23 && buf[12] == 1) {
-                        // I帧数据
-                        startIndex = 100;
+                    if(buf[0] == 0x46 && buf[1] == 0x4c && buf[2] == 0x56 && buf[13] == 0x12) {
+                        int i = 0;
+                        for (i = 13; i < buf.length; i++) {
+                            if (buf[i] == 0x77 && buf[i + 1] == 0x69 && buf[i + 2] == 0x64 && buf[i + 3] == 0x74 && buf[i + 4] == 0x68 && buf[i + 5] == 0x00){
+                                // 宽高提取
 
-                    } else if (buf[11] == 39 && buf[12] == 1) {
-                        // p帧数据
-                        if (buf[25] == 12) {
-                            startIndex = 38;
-                        } else if (buf[25] == 11) {
-                            startIndex = 37;
+                            }
                         }
+                    } else if (buf[0] == 0x09 && (buf[11] == 0x17 || buf[11] == 0x27 ) && buf[12] == 0x01) {
+                        // nalu帧数据
+                        startIndex = 16;
                     }
                     int len = (buf[startIndex] & 0x000000FF) << 24 | (buf[startIndex + 1] & 0x000000FF) << 16 |
                             (buf[startIndex + 2] & 0x000000FF) << 8 | buf[startIndex + 3] & 0x000000FF;
@@ -216,5 +237,9 @@ public class MD360Surface {
 
     public interface IOnSurfaceReadyListener {
         void onSurfaceReady(Surface surface);
+    }
+
+    public interface OnMetaDataParsedListener {
+        void onMetaDataParsed(String info);
     }
 }
