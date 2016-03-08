@@ -23,6 +23,7 @@ extern "C" {
 static JavaVM      *gJavaVM;
 static jclass      gJavaClass;
 static jmethodID   gMethodID;
+static jmethodID   gMethodIDSet;
 //static jbyteArray  gArray;
 
 double duration;
@@ -63,6 +64,8 @@ JNIEXPORT jint JNICALL Java_com_example_mediacodecrtmp_RtmpNative_naTest
 
     gMethodID = (*pEnv)->GetStaticMethodID(pEnv,gJavaClass,"offer","([B)Z");
 
+    gMethodIDSet = (*pEnv)->GetStaticMethodID(pEnv,gJavaClass,"setMetadataInfo","(Ljava/lang/String;D)V");
+
 
     InitReceiveSockets();
 	LOGI("enter naTest method()");
@@ -72,7 +75,7 @@ JNIEXPORT jint JNICALL Java_com_example_mediacodecrtmp_RtmpNative_naTest
 	bLiveStream=1;
 
 
-	bufsize=1000*500*3/2;
+	bufsize=1000*1000*3/2;
 
 	buf=(char*)malloc(bufsize);
 	memset(buf,0,bufsize);
@@ -91,8 +94,8 @@ JNIEXPORT jint JNICALL Java_com_example_mediacodecrtmp_RtmpNative_naTest
 	rtmp->Link.timeout=10;
 	// HKS's live URL
 //  if(!RTMP_SetupURL(rtmp,"rtmp://183.61.143.98/flvplayback/mp4:panvideo1.mp4"))
-//	if(!RTMP_SetupURL(rtmp,"rtmp://live.hkstv.hk.lxdns.com/live/hks"))
-	if(!RTMP_SetupURL(rtmp,"rtmp://183.60.140.6/ent/91590716_91590716_10057"))
+	if(!RTMP_SetupURL(rtmp,"rtmp://live.hkstv.hk.lxdns.com/live/hks"))
+//	if(!RTMP_SetupURL(rtmp,"rtmp://183.60.140.6/ent/91590716_91590716_10057"))
 	{
 		RTMP_Log(RTMP_LOGERROR,"SetupURL Err\n");
 		RTMP_Free(rtmp);
@@ -152,14 +155,18 @@ static void* parseRtmpData(void *arg){
 
 
 	while(nRead=RTMP_Read(rtmp,buf,bufsize)){
-	      /* jbyte *by = (jbyte*)buf;
-            jbyteArray jarray = (*threadEnv)->NewByteArray(threadEnv, bufsize);
-            (*threadEnv)->SetByteArrayRegion(threadEnv, jarray, 0, bufsize, by);
-             //回调java中的方法
-    //		  (*threadEnv)->CallVoidMethod(threadEnv, obj, methodID, jarray);
-            (*threadEnv)->CallStaticBooleanMethod(threadEnv, gJavaClass, gMethodID, jarray);*/
+	      jbyte *by = (jbyte*)buf;
+          jbyteArray jarray = (*threadEnv)->NewByteArray(threadEnv, bufsize);
+          (*threadEnv)->SetByteArrayRegion(threadEnv, jarray, 0, bufsize, by);
+         //回调java中的方法
+//		  (*threadEnv)->CallVoidMethod(threadEnv, obj, methodID, jarray);
+          (*threadEnv)->CallStaticBooleanMethod(threadEnv, gJavaClass, gMethodID, jarray);
+          countbufsize+=nRead;
+          RTMP_LogPrintf("Receive: %5dByte, Total: %5.2fkB\n",nRead,countbufsize*1.0/1024);
+          LOGI("Receive: %5dByte, Total: %5.2fkB\n",nRead,countbufsize*1.0/1024);
+          (*threadEnv)->DeleteLocalRef(threadEnv, jarray);
 
-          double framerate = 0.0;
+          double value = 0.0;
 	      if(buf[0] == 0x46 && buf[1] == 0x4c && buf[2] == 0x56 && buf[13] == 0x12){
               LOGI("in if buf[13] == 0x12\n");
               int i = 0;
@@ -170,12 +177,33 @@ static void* parseRtmpData(void *arg){
 
                       char *length = (char*)malloc(8);
                       memcpy(length, buf+i+10, 8);
-                      framerate = hexStr2double(length, 8);
-                      LOGI("framerate =  %lf\n", framerate);
-                  }
+                      value = hexStr2double(length, 8);
+                      jstring rtstr = (*threadEnv)->NewStringUTF(threadEnv,"framerate");
+                      (*threadEnv)->CallStaticVoidMethod(threadEnv, gJavaClass, gMethodIDSet,rtstr,value);
+                      LOGI("framerate =  %lf\n", value);
+                  }else if (buf[i] == 0x77 && buf[i + 1] == 0x69 && buf[i + 2] == 0x64
+                      && buf[i + 3] == 0x74 && buf[i + 4] == 0x68 && buf[i + 5] == 0x00){
+                      LOGI("in if width\n");
+                      char *length = (char*)malloc(8);
+                      memcpy(length, buf+i+6, 8);
+                      value = hexStr2double(length, 8);
+                      jstring rtstr = (*threadEnv)->NewStringUTF(threadEnv,"width");
+                      (*threadEnv)->CallStaticVoidMethod(threadEnv, gJavaClass, gMethodIDSet,rtstr,value);
+                      LOGI("width =  %lf\n", value);
+                  }/*else if (buf[i] == 0x77 && buf[i + 1] == 0x69 && buf[i + 2] == 0x64
+                     && buf[i + 3] == 0x74 && buf[i + 4] == 0x68 && buf[i + 5] == 0x00){
+                     LOGI("in if width\n");
+                     char *length = (char*)malloc(8);
+                     memcpy(length, buf+i+6, 8);
+                     value = hexStr2double(length, 8);
+                     jstring rtstr = (*threadEnv)->NewStringUTF(threadEnv,"width");
+                     (*threadEnv)->CallStaticVoidMethod(threadEnv, gJavaClass, gMethodIDSet,rtstr,value);
+                     LOGI("width =  %lf\n", value);
+                 }*/
+
               }
 
-          }else if((buf[0] == 0x09) && (buf[11] == 0x17 || buf[11]  == 0x27) && (buf[12] == 0x01)){
+          }/*else if((buf[0] == 0x09) && (buf[11] == 0x17 || buf[11]  == 0x27) && (buf[12] == 0x01)){
 	          LOGI("avc data, procces it.....");
               jbyte *by = (jbyte*)buf;
               jbyteArray jarray = (*threadEnv)->NewByteArray(threadEnv, bufsize);
@@ -188,7 +216,7 @@ static void* parseRtmpData(void *arg){
               RTMP_LogPrintf("Receive: %5dByte, Total: %5.2fkB\n",nRead,countbufsize*1.0/1024);
               LOGI("Receive: %5dByte, Total: %5.2fkB\n",nRead,countbufsize*1.0/1024);
               (*threadEnv)->DeleteLocalRef(threadEnv, jarray);
-	      }
+	      }*/
 
 	      memset(buf,0,bufsize);
           int tempFramerate = (int)framerate;

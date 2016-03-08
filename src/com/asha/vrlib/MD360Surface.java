@@ -11,7 +11,6 @@ import com.example.mediacodecrtmp.DataManager;
 
 import javax.microedition.khronos.opengles.GL10;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import static com.asha.vrlib.common.GLUtil.glCheck;
 
@@ -30,6 +29,9 @@ public class MD360Surface {
     private int mGlSurfaceTexture;
     private int mWidth;
     private int mHeight;
+    private double mVideoWidth;
+    private double mVideoHeight;
+
     private IOnSurfaceReadyListener mOnSurfaceReadyListener;
 
     private MediaCodec decoder;
@@ -69,7 +71,7 @@ public class MD360Surface {
                 mOnSurfaceReadyListener.onSurfaceReady(mSurface);
         }
 
-        try {
+       /* try {
             decoder = MediaCodec.createDecoderByType("video/avc");
         } catch (IOException e) {
             e.printStackTrace();
@@ -85,7 +87,7 @@ public class MD360Surface {
             Log.e(TAG, "decoder == null");
             return;
         }
-        decoder.start();
+        decoder.start();*/
 
     }
 
@@ -123,34 +125,45 @@ public class MD360Surface {
     public void onDrawFrame(/*MediaCodec decoder*/) {
         if (mGlSurfaceTexture == SURFACE_TEXTURE_EMPTY)
             return;
+        mVideoWidth = DataManager.getInstance().metdataInfo.get("width");
+        mVideoHeight = DataManager.getInstance().metdataInfo.get("height");
+        if (mVideoHeight != 0 && mVideoWidth != 0) {
+            if (decoder == null) {
+                try {
+                    decoder = MediaCodec.createDecoderByType("video/avc");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                MediaFormat mediaFormat = MediaFormat.createVideoFormat("video/avc", (int)mVideoWidth, (int)mVideoHeight);
+        //            mediaFormat.setByteBuffer("csd-0", ByteBuffer.wrap(header_sps));
+        //            mediaFormat.setByteBuffer("csd-1", ByteBuffer.wrap(header_pps));
+                decoder.configure(mediaFormat, mSurface, null, 0);
+                decoder.start();
+            }
+        }else {
+            Log.i("MyActivity", "mVideoHeight或者mVideoWidth的值不正确");
+        }
 
-        if (decoder == null) {
+
+       /* if (decoder == null) {
             Log.e("MD360Surface", "onDrawFrame--->decoder == null");
             return;
         }
         ByteBuffer[] inputBuffers = decoder.getInputBuffers();
-        ByteBuffer[] outputBuffers = decoder.getOutputBuffers();
+        ByteBuffer[] outputBuffers = decoder.getOutputBuffers();*/
         MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
         long startMs = System.currentTimeMillis();
 
         if (DataManager.getInstance().inputBytesQueue.size() > 0) {
-            int inIndex = decoder.dequeueInputBuffer(0);
-            Log.i("MyActivity", "inIndex = " + inIndex);
-            if (inIndex >= 0) {
+//            int inIndex = decoder.dequeueInputBuffer(0);
+//            Log.i("MyActivity", "inIndex = " + inIndex);
+//            if (inIndex >= 0) {
                 byte[] buf = DataManager.getInstance().inputBytesQueue.poll();
                 Log.i("MyActivity", "inIndex >= 0, inputBytesQueue.poll()");
                 int startIndex = 0;
                 byte[] temp = null;
                 if (buf != null) {
-                    if(buf[0] == 0x46 && buf[1] == 0x4c && buf[2] == 0x56 && buf[13] == 0x12) {
-                        int i = 0;
-                        for (i = 13; i < buf.length; i++) {
-                            if (buf[i] == 0x77 && buf[i + 1] == 0x69 && buf[i + 2] == 0x64 && buf[i + 3] == 0x74 && buf[i + 4] == 0x68 && buf[i + 5] == 0x00){
-                                // 宽高提取
-
-                            }
-                        }
-                    } else if (buf[0] == 0x09 && (buf[11] == 0x17 || buf[11] == 0x27 ) && buf[12] == 0x01) {
+                    if (buf[0] == 0x09 && (buf[11] == 0x17 || buf[11] == 0x27 ) && buf[12] == 0x01) {
                         // nalu帧数据
                         startIndex = 16;
                     }
@@ -168,7 +181,7 @@ public class MD360Surface {
 
                     System.arraycopy(buf, startIndex + 4, temp, 4, len);
 
-                    int sampleSize = temp.length;
+                   /* int sampleSize = temp.length;
                     ByteBuffer buffer = inputBuffers[inIndex];
                     buffer.clear();
                     buffer.put(temp, 0, sampleSize);
@@ -181,15 +194,13 @@ public class MD360Surface {
                         decoder.queueInputBuffer(inIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
                     } else {
                         decoder.queueInputBuffer(inIndex, 0, sampleSize, 0, 0);
-                    }
+                    }*/
                 }
-            } else {
-                Log.i("MyActivity", "inIndex < 0");
-            }
+//            }
         }
 
 
-        int outIndex = decoder.dequeueOutputBuffer(info, 10000);
+       /* int outIndex = decoder.dequeueOutputBuffer(info, 10000);
         switch (outIndex) {
             case MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED:
                 Log.i("MyActivity", "INFO_OUTPUT_BUFFERS_CHANGED");
@@ -227,7 +238,7 @@ public class MD360Surface {
             Log.i("MyActivity", "OutputBuffer BUFFER_FLAG_END_OF_STREAM");
             decoder.stop();
             decoder.release();
-        }
+        }*/
 
 
         synchronized (this) {
