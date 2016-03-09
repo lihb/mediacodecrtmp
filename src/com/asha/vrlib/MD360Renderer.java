@@ -1,7 +1,6 @@
 package com.asha.vrlib;
 
 import android.content.Context;
-import android.media.MediaCodec;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.view.MotionEvent;
@@ -24,7 +23,7 @@ public class MD360Renderer implements GLSurfaceView.Renderer {
 	private MD360Program mProgram;
 	private MD360Surface mD360Surface;
 
-	private MediaCodec decoder;
+//	private MediaCodec decoder;
 
 	// final
 	private final Context mContext;

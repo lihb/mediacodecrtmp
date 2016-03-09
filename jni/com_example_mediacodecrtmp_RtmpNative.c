@@ -152,14 +152,17 @@ static void* parseRtmpData(void *arg){
 
 
 	while(nRead=RTMP_Read(rtmp,buf,bufsize)){
-	      /* jbyte *by = (jbyte*)buf;
-            jbyteArray jarray = (*threadEnv)->NewByteArray(threadEnv, bufsize);
-            (*threadEnv)->SetByteArrayRegion(threadEnv, jarray, 0, bufsize, by);
+	       jbyte *by = (jbyte*)buf;
+           jbyteArray jarray = (*threadEnv)->NewByteArray(threadEnv, bufsize);
+           (*threadEnv)->SetByteArrayRegion(threadEnv, jarray, 0, bufsize, by);
              //回调java中的方法
     //		  (*threadEnv)->CallVoidMethod(threadEnv, obj, methodID, jarray);
-            (*threadEnv)->CallStaticBooleanMethod(threadEnv, gJavaClass, gMethodID, jarray);*/
-
-          double framerate = 0.0;
+           (*threadEnv)->CallStaticBooleanMethod(threadEnv, gJavaClass, gMethodID, jarray);
+           countbufsize+=nRead;
+           RTMP_LogPrintf("Receive: %5dByte, Total: %5.2fkB\n",nRead,countbufsize*1.0/1024);
+           LOGI("Receive: %5dByte, Total: %5.2fkB\n",nRead,countbufsize*1.0/1024);
+           (*threadEnv)->DeleteLocalRef(threadEnv, jarray);
+         /* double framerate = 0.0;
 	      if(buf[0] == 0x46 && buf[1] == 0x4c && buf[2] == 0x56 && buf[13] == 0x12){
               LOGI("in if buf[13] == 0x12\n");
               int i = 0;
@@ -188,12 +191,13 @@ static void* parseRtmpData(void *arg){
               RTMP_LogPrintf("Receive: %5dByte, Total: %5.2fkB\n",nRead,countbufsize*1.0/1024);
               LOGI("Receive: %5dByte, Total: %5.2fkB\n",nRead,countbufsize*1.0/1024);
               (*threadEnv)->DeleteLocalRef(threadEnv, jarray);
-	      }
+	      }*/
 
 	      memset(buf,0,bufsize);
-          int tempFramerate = (int)framerate;
-          LOGI("tempFramerate =  %d\n", tempFramerate);
-	      usleep(tempFramerate *1000);
+//          int tempFramerate = (int)framerate;
+//          LOGI("tempFramerate =  %d\n", tempFramerate);
+//	      usleep(tempFramerate *1000);
+	      usleep(10 *1000);
 
 	}
 
