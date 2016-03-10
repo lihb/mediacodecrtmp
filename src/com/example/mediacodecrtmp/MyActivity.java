@@ -3,13 +3,9 @@ package com.example.mediacodecrtmp;
 import android.app.Activity;
 import android.media.MediaCodec;
 import android.media.MediaFormat;
-import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.*;
-import android.widget.Toast;
-import com.asha.vrlib.MD360Renderer;
-import com.asha.vrlib.common.GLUtil;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -30,7 +26,7 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback {
         SurfaceView sv = new SurfaceView(this);
         sv.getHolder().addCallback(this);
         setContentView(sv);
-        RtmpNative rtmpNative = new RtmpNative(DataManager.getInstance().inputBytesQueue);
+        RtmpNative rtmpNative = new RtmpNative(DataManager.getInstance().inputBytesQueue, DataManager.getInstance().inputAudioBytesQueue);
         rtmpNative.naTest();
 
 

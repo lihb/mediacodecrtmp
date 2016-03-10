@@ -27,8 +27,9 @@ public class VRActivity extends Activity {
 
         setContentView(R.layout.activity_md_render);
 
-        RtmpNative rtmpNative = new RtmpNative(DataManager.getInstance().inputBytesQueue);
+        RtmpNative rtmpNative = new RtmpNative(DataManager.getInstance().inputBytesQueue, DataManager.getInstance().inputAudioBytesQueue);
         rtmpNative.naTest();
+//        new AudioDecoder().start();
 
         mRenderer = MD360Renderer.with(this)
                 .defaultSurface(new MD360Surface.IOnSurfaceReadyListener() {
@@ -38,7 +39,6 @@ public class VRActivity extends Activity {
                     }
                 })
                 .build();
-
         // init OpenGL
         initOpenGL(R.id.surface_view);
 
@@ -77,5 +77,13 @@ public class VRActivity extends Activity {
         // The activity must call the GL surface view's onPause() on activity onPause().
         super.onPause();
         mGLSurfaceView.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mRenderer != null) {
+            mRenderer.release();
+        }
     }
 }

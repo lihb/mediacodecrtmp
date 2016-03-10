@@ -8,6 +8,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class DataManager {
 
     public LinkedBlockingQueue<byte[]> inputBytesQueue = new LinkedBlockingQueue<byte[]>(40);
+    public LinkedBlockingQueue<byte[]> inputAudioBytesQueue = new LinkedBlockingQueue<byte[]>(40);
 
 
     private static DataManager mInstance = null;

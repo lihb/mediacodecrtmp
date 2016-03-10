@@ -30,8 +30,13 @@ public class MD360Surface {
     private int mGlSurfaceTexture;
     private int mWidth;
     private int mHeight;
+
     private int mVideoWidth;
     private int mVideoHeight;
+    private int mFramerate;
+    byte[] header_sps;
+    byte[] header_pps;
+
     private IOnSurfaceReadyListener mOnSurfaceReadyListener;
 
     private MediaCodec decoder;
@@ -155,47 +160,57 @@ public class MD360Surface {
                             ByteBuffer byteBuffer = ByteBuffer.wrap(temp);
                             mVideoHeight = (int) byteBuffer.getDouble();
                             Log.i(TAG, "mVideoHeight = " + mVideoHeight);
-                        }
+                        } else if (buf[i-1] == 0x09 && buf[i] == 0x66 && buf[i+1] == 0x72 && buf[i+2] == 0x61 && buf[i+3] == 0x6d && buf[i+4] == 0x65 && buf[i+5] == 0x72 && buf[i+6] == 0x61
+                                && buf[i+7] == 0x74 && buf[i+8] == 0x65 && buf[i+9] == 0x00) {
+                            // 提取帧率
+                            temp = new byte[8];
+                            System.arraycopy(buf, i + 10, temp, 0, 8);
+                            ByteBuffer byteBuffer = ByteBuffer.wrap(temp);
+                            mFramerate = (int) byteBuffer.getDouble();
+                            Log.i(TAG, "mFramerate = " + mFramerate);
+                        } else if (buf[i] == 0x09 && buf[i+11] == 0x17 && buf[i+12] == 0x00) {
+                            // 提取sps pps
+                            Log.i(TAG, "lihb提取sps pps, 第一帧yes");
+
+                            startIndex = i + 22;
+                            initDecoder(startIndex, buf);
+                        }/*else if (buf[i] == 0x08 && buf[i+1] == 0x00 && buf[i+11] == (byte)0xaf&& buf[i+12] == 0x00) {
+                            // 提取音频帧
+                            Log.i(TAG, "lihb获得音频帧, 第一帧yes------------------");
+                            int length = (buf[i + 2] & 0x000000FF << 8 | buf[i + 3] & 0x000000FF);
+                            temp = new byte[length+11];
+                            System.arraycopy(buf, i, temp, 0, length+11);
+                            RtmpNative.offerAudioData(temp);
+                        }*/
 
                     }
-                    try {
-                        decoder = MediaCodec.createDecoderByType("video/avc");
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    mediaFormat = MediaFormat.createVideoFormat("video/avc", mVideoWidth, mVideoHeight);
+
                 } else if (buf[0] == 0x09 && (buf[11] == 0x17 || buf[11] == 0x27)) {
+                   /* int tagsize = (buf[startIndex + 2] & 0x000000FF << 8 | buf[startIndex + 3] & 0x000000FF) + 10;
+                    for(int i = 0, len = buf.length; i < len; i++) {
+                        if (buf[i] == 0x08 && buf[i+1] == 0x00 && buf[i+11] == (byte)0xaf && buf[i+12] == 0x01) {
+                            // 提取音频帧
+                            Log.i(TAG, "lihb获得音频帧, 第一帧no------------------");
+                            int length = (buf[i + 2] & 0x000000FF << 8 | buf[i + 3] & 0x000000FF);
+                            temp = new byte[length+11];
+                            System.arraycopy(buf, i, temp, 0, length+11);
+                            RtmpNative.offerAudioData(temp);
+                        }
+                    }*/
+
                     if (buf[12] == 0x00) {
-                        // 提取sps pps，并初始化decoder
+                        if (header_pps != null && header_sps != null) {
+                            return;
+                        }
+                        // 提取sps pps，并启动decoder
+                        Log.i(TAG, "lihb提取sps pps, 第一帧no");
                         startIndex = 22;
-                        int len = (buf[startIndex] & 0x000000FF) << 8 | buf[startIndex + 1] & 0x000000FF;
-                        byte[] header_sps = new byte[len + 4];
-                        header_sps[0] = 0;
-                        header_sps[1] = 0;
-                        header_sps[2] = 0;
-                        header_sps[3] = 1;
-                        System.arraycopy(buf, startIndex + 2, header_sps, 4, len); // sps
-
-                        startIndex += (len + 2 + 1);
-                        len = (buf[startIndex] & 0x000000FF) << 8 | (buf[startIndex + 1] & 0x000000FF);
-                        byte[] header_pps = new byte[len + 4];
-                        header_pps[0] = 0;
-                        header_pps[1] = 0;
-                        header_pps[2] = 0;
-                        header_pps[3] = 1;
-                        System.arraycopy(buf, startIndex + 2, header_pps, 4, len); // pps
-
-                        mediaFormat.setByteBuffer("csd-0", ByteBuffer.wrap(header_sps));
-                        mediaFormat.setByteBuffer("csd-1", ByteBuffer.wrap(header_pps));
-                        decoder.configure(mediaFormat, mSurface, null, 0);
-                        decoder.start();
-
-                        inputBuffers = decoder.getInputBuffers();
-                        outputBuffers = decoder.getOutputBuffers();
-                        info = new MediaCodec.BufferInfo();
+                        initDecoder(startIndex, buf);
 
                     } else if (buf[12] == 0x01) {
                         // 提取nalu帧数据
+                        Log.i(TAG, "lihb提取nalu帧数据");
+
                         startIndex = 16;
                         int len = (buf[startIndex] & 0x000000FF) << 24 | (buf[startIndex + 1] & 0x000000FF) << 16 |
                                 (buf[startIndex + 2] & 0x000000FF) << 8 | buf[startIndex + 3] & 0x000000FF;
@@ -282,6 +297,51 @@ public class MD360Surface {
 
         synchronized (this) {
             mSurfaceTexture.updateTexImage();
+        }
+    }
+
+    // 得到sps pps并初始化解码器
+    private void initDecoder(int startIndex, byte[] buf) {
+
+        int len = (buf[startIndex] & 0x000000FF) << 8 | buf[startIndex + 1] & 0x000000FF;
+        header_sps = new byte[len + 4];
+        header_sps[0] = 0;
+        header_sps[1] = 0;
+        header_sps[2] = 0;
+        header_sps[3] = 1;
+        System.arraycopy(buf, startIndex + 2, header_sps, 4, len); // sps
+
+        startIndex += (len + 2 + 1);
+        len = (buf[startIndex] & 0x000000FF) << 8 | (buf[startIndex + 1] & 0x000000FF);
+        header_pps = new byte[len + 4];
+        header_pps[0] = 0;
+        header_pps[1] = 0;
+        header_pps[2] = 0;
+        header_pps[3] = 1;
+        System.arraycopy(buf, startIndex + 2, header_pps, 4, len); // pps
+
+        try {
+            decoder = MediaCodec.createDecoderByType("video/avc");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        mediaFormat = MediaFormat.createVideoFormat("video/avc", mVideoWidth, mVideoHeight);
+        mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, mFramerate);
+        mediaFormat.setByteBuffer("csd-0", ByteBuffer.wrap(header_sps));
+        mediaFormat.setByteBuffer("csd-1", ByteBuffer.wrap(header_pps));
+        decoder.configure(mediaFormat, mSurface, null, 0);
+        decoder.start();
+
+        inputBuffers = decoder.getInputBuffers();
+        outputBuffers = decoder.getOutputBuffers();
+        info = new MediaCodec.BufferInfo();
+    }
+
+    //释放资源
+    public void release() {
+        if (decoder != null) {
+            decoder.stop();
+            decoder.release();
         }
     }
 

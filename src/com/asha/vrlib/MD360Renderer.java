@@ -126,6 +126,12 @@ public class MD360Renderer implements GLSurfaceView.Renderer {
 		mObject3D.uploadDataToProgram(mProgram);
 	}
 
+	public void release() {
+		if (mD360Surface != null) {
+			mD360Surface.release();
+		}
+	}
+
 	/**
 	 * handle touch touch to rotate the model
 	 *

@@ -23,6 +23,7 @@ extern "C" {
 static JavaVM      *gJavaVM;
 static jclass      gJavaClass;
 static jmethodID   gMethodID;
+//static jmethodID   gAudioMethodID;
 //static jbyteArray  gArray;
 
 double duration;
@@ -61,7 +62,8 @@ JNIEXPORT jint JNICALL Java_com_example_mediacodecrtmp_RtmpNative_naTest
     jclass clazz = (*pEnv)->GetObjectClass(pEnv,pObj);
     gJavaClass = (jclass)(*pEnv)->NewGlobalRef(pEnv,clazz);
 
-    gMethodID = (*pEnv)->GetStaticMethodID(pEnv,gJavaClass,"offer","([B)Z");
+    gMethodID = (*pEnv)->GetStaticMethodID(pEnv,gJavaClass,"offerAvcData","([B)Z");
+//    gAudioMethodID = (*pEnv)->GetStaticMethodID(pEnv,gJavaClass,"offerAudioData","([B)Z");
 
 
     InitReceiveSockets();
@@ -92,7 +94,8 @@ JNIEXPORT jint JNICALL Java_com_example_mediacodecrtmp_RtmpNative_naTest
 	// HKS's live URL
 //  if(!RTMP_SetupURL(rtmp,"rtmp://183.61.143.98/flvplayback/mp4:panvideo1.mp4"))
 //	if(!RTMP_SetupURL(rtmp,"rtmp://live.hkstv.hk.lxdns.com/live/hks"))
-	if(!RTMP_SetupURL(rtmp,"rtmp://183.60.140.6/ent/91590716_91590716_10057"))
+//	if(!RTMP_SetupURL(rtmp,"rtmp://183.60.140.6/ent/91590716_91590716_10057"))
+	if(!RTMP_SetupURL(rtmp,"rtmp://183.61.143.98/flvplayback/test"))
 	{
 		RTMP_Log(RTMP_LOGERROR,"SetupURL Err\n");
 		RTMP_Free(rtmp);
@@ -156,8 +159,13 @@ static void* parseRtmpData(void *arg){
            jbyteArray jarray = (*threadEnv)->NewByteArray(threadEnv, bufsize);
            (*threadEnv)->SetByteArrayRegion(threadEnv, jarray, 0, bufsize, by);
              //回调java中的方法
-    //		  (*threadEnv)->CallVoidMethod(threadEnv, obj, methodID, jarray);
+           /*if(buf[0] == 0x08){ // 音频处理
+               (*threadEnv)->CallStaticBooleanMethod(threadEnv, gJavaClass, gAudioMethodID, jarray);
+           }else{
+               (*threadEnv)->CallStaticBooleanMethod(threadEnv, gJavaClass, gMethodID, jarray);
+           }*/
            (*threadEnv)->CallStaticBooleanMethod(threadEnv, gJavaClass, gMethodID, jarray);
+
            countbufsize+=nRead;
            RTMP_LogPrintf("Receive: %5dByte, Total: %5.2fkB\n",nRead,countbufsize*1.0/1024);
            LOGI("Receive: %5dByte, Total: %5.2fkB\n",nRead,countbufsize*1.0/1024);
@@ -194,9 +202,6 @@ static void* parseRtmpData(void *arg){
 	      }*/
 
 	      memset(buf,0,bufsize);
-//          int tempFramerate = (int)framerate;
-//          LOGI("tempFramerate =  %d\n", tempFramerate);
-//	      usleep(tempFramerate *1000);
 	      usleep(10 *1000);
 
 	}
@@ -214,6 +219,7 @@ static void* parseRtmpData(void *arg){
 	 // 销毁全局对象
     (*threadEnv)->DeleteGlobalRef(threadEnv, gJavaClass);
     (*threadEnv)->DeleteGlobalRef(threadEnv, gMethodID);
+//    (*threadEnv)->DeleteGlobalRef(threadEnv, gAudioMethodID);
 //    (*threadEnv)->DeleteGlobalRef(threadEnv, gArray);
     //释放当前线程
     (*gJavaVM)->DetachCurrentThread(gJavaVM);

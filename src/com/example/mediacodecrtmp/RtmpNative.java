@@ -1,6 +1,5 @@
 package com.example.mediacodecrtmp;
 
-import android.os.Environment;
 import android.util.Log;
 
 import java.util.concurrent.LinkedBlockingQueue;
@@ -11,16 +10,22 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class RtmpNative {
 
     private static LinkedBlockingQueue<byte[]> inputQueue;
+    private static LinkedBlockingQueue<byte[]> inputAudioQueue;
 
-    public RtmpNative(LinkedBlockingQueue<byte[]> inputQueue) {
+    public RtmpNative(LinkedBlockingQueue<byte[]> inputQueue, LinkedBlockingQueue<byte[]> inputAudioQueue) {
         this.inputQueue = inputQueue;
+        this.inputAudioQueue = inputAudioQueue;
     }
 
-    public static boolean offer(byte[] inputbuf) {
-        Log.i("lihb test----- offer()", inputQueue.toString());
+    public static boolean offerAvcData(byte[] inputbuf) {
+        Log.i("test offerAvcData()", inputQueue.toString());
         return inputQueue.offer(inputbuf);
     }
 
+    public static boolean offerAudioData(byte[] inputbuf) {
+        Log.i("test offerAudioData()", inputAudioQueue.toString());
+        return inputAudioQueue.offer(inputbuf);
+    }
 
     public native int naTest();
 
