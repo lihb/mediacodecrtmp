@@ -29,7 +29,7 @@ public class VRActivity extends Activity {
 
         RtmpNative rtmpNative = new RtmpNative(DataManager.getInstance().inputBytesQueue, DataManager.getInstance().inputAudioBytesQueue);
         rtmpNative.naTest();
-//        new AudioDecoder().start();
+        new AudioDecoder().start();
 
         mRenderer = MD360Renderer.with(this)
                 .defaultSurface(new MD360Surface.IOnSurfaceReadyListener() {

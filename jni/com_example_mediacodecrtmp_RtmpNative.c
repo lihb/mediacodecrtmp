@@ -74,7 +74,7 @@ JNIEXPORT jint JNICALL Java_com_example_mediacodecrtmp_RtmpNative_naTest
 	bLiveStream=1;
 
 
-	bufsize=1000*500*3/2;
+	bufsize=2000*1000*3/2;
 
 	buf=(char*)malloc(bufsize);
 	memset(buf,0,bufsize);

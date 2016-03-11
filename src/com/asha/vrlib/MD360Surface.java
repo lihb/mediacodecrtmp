@@ -8,6 +8,7 @@ import android.opengl.GLES20;
 import android.util.Log;
 import android.view.Surface;
 import com.example.mediacodecrtmp.DataManager;
+import com.example.mediacodecrtmp.RtmpNative;
 
 import javax.microedition.khronos.opengles.GL10;
 import java.io.IOException;
@@ -174,18 +175,24 @@ public class MD360Surface {
 
                             startIndex = i + 22;
                             initDecoder(startIndex, buf);
-                        }/*else if (buf[i] == 0x08 && buf[i+1] == 0x00 && buf[i+11] == (byte)0xaf&& buf[i+12] == 0x00) {
+                        }else if (buf[i] == 0x08 && buf[i+1] == 0x00 && buf[i+11] == (byte)0xaf && buf[i+12] == 0x00) {
                             // 提取音频帧
                             Log.i(TAG, "lihb获得音频帧, 第一帧yes------------------");
-                            int length = (buf[i + 2] & 0x000000FF << 8 | buf[i + 3] & 0x000000FF);
+                            int length = (buf[i + 2] & 0x000000FF) << 8 | buf[i + 3] & 0x000000FF;
                             temp = new byte[length+11];
                             System.arraycopy(buf, i, temp, 0, length+11);
                             RtmpNative.offerAudioData(temp);
-                        }*/
+                        }
 
                     }
 
-                } else if (buf[0] == 0x09 && (buf[11] == 0x17 || buf[11] == 0x27)) {
+                }else if (buf[0] == 0x08 && (buf[1] == 0x00 || buf[11] == (byte)0xaf && buf[12] == 0x01)) {
+                    int length = (buf[2] & 0x000000FF) << 8 | (buf[3] & 0x000000FF);
+                    temp = new byte[length+11];
+                    System.arraycopy(buf, 0, temp, 0, length+11);
+                    RtmpNative.offerAudioData(temp);
+
+                }else if (buf[0] == 0x09 && (buf[11] == 0x17 || buf[11] == 0x27)) {
                    /* int tagsize = (buf[startIndex + 2] & 0x000000FF << 8 | buf[startIndex + 3] & 0x000000FF) + 10;
                     for(int i = 0, len = buf.length; i < len; i++) {
                         if (buf[i] == 0x08 && buf[i+1] == 0x00 && buf[i+11] == (byte)0xaf && buf[i+12] == 0x01) {
