@@ -28,8 +28,19 @@ public class Util {
 
 
     public static void main(String[] args) {
-        byte[] buf = {70, 0, 54, 14, 25, 00};
-        printBuf(buf);
+        byte s = -80;
+        byte t = 94;
+        System.out.println(String.format("s = %x,    t = %x, %x, %x, %x,%x, %x, %x, %x,%x",
+                (byte)-2, (byte)-1,(byte)-48,(byte)-79,(byte)-126,(byte)-92, (byte)-56,(byte)-109,(byte)108,(byte)-98));
+        System.out.println(String.format("%d", (byte)0xaf));
+//        byte[] fisrtData = new byte[2];
+//        int profile = 2;  //AAC LC
+//        //39=MediaCodecInfo.CodecProfileLevel.AACObjectELD;
+//        int freqIdx = 4;  //44.1KHz
+//        int chanCfg = 2;  //CPE
+//        fisrtData[0] = (byte)(((profile-1)<<6) + (freqIdx<<2) +(chanCfg>>2));
+//        System.out.println(fisrtData[0]);
+//        System.out.println(String.format("%x", fisrtData[0]));
     }
 
 }

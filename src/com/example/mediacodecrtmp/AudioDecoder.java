@@ -36,7 +36,7 @@ public class AudioDecoder extends Thread{
         format.setString(MediaFormat.KEY_MIME, "audio/mp4a-latm");
         format.setInteger(MediaFormat.KEY_CHANNEL_COUNT, 2);
         format.setInteger(MediaFormat.KEY_SAMPLE_RATE, 44100);
-//        format.setInteger(MediaFormat.KEY_BIT_RATE, 128);
+//        format.setInteger(MediaFormat.KEY_BIT_RATE, 0);
         format.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
         format.setByteBuffer("csd-0",ByteBuffer.wrap(new byte[]{0x12, (byte)0x10}));
         mMediaDecode.configure(format, null, null, 0);
@@ -62,31 +62,32 @@ public class AudioDecoder extends Thread{
 
                 int inputBufferIndex = mMediaDecode.dequeueInputBuffer(0);
                 if (inputBufferIndex >= 0) {
+                    int len = -1;
                     ByteBuffer inputBuffer = inputBuffers[inputBufferIndex];
                     inputBuffer.clear();
-                    if (audioData[0] == 0x08 && audioData[12] == 0x00) {
+                    /*if (audioData[0] == 0x08 && audioData[12] == 0x00) {
                         byte[] fisrtData = new byte[2];
                         fisrtData[0] = audioData[13];
                         fisrtData[1] = audioData[14];
                         inputBuffer.put(fisrtData);
-                    } else if(audioData[0] == 0x08 && audioData[12] == 0x01){
-                        int len = (audioData[2] & 0x000000FF) << 8 | audioData[3] & 0x000000FF;
+                    } else */if(audioData[0] == 0x08 && audioData[12] == 0x01){
+                        len = (audioData[2] & 0x000000FF) << 8 | audioData[3] & 0x000000FF;
 
                         // test1:AF开头所有数据喂给解码器
 //                        temp = new byte[len];
 //                        System.arraycopy(audioData, 11, temp, 0 ,len);
 
                         // test2:  -2：去除 af 01两个字节；+7：adts的7个字节
-                        int packetLen = len -2 + 7; // -2：去除 af 01两个字节；+7：adts的7个字节
-                        temp = new byte[packetLen];
+//                        int packetLen = len -2 + 7; // -2：去除 af 01两个字节；+7：adts的7个字节
+//                        temp = new byte[packetLen];
+//
+//                        int profile = 2;  //AAC LC
+//                                          //39=MediaCodecInfo.CodecProfileLevel.AACObjectELD;
+//                        int freqIdx = 4;  //44.1KHz
+//                        int chanCfg = 2;  //CPE
 
-                        int profile = 2;  //AAC LC
-                                          //39=MediaCodecInfo.CodecProfileLevel.AACObjectELD;
-                        int freqIdx = 4;  //44.1KHz
-                        int chanCfg = 2;  //CPE
 
-
-                        // fill in ADTS data
+////                        fill in ADTS data
 //                        temp[0] = (byte)0xFF;
 //                        temp[1] = (byte)0xF9;
 //                        temp[2] = (byte)(((profile-1)<<6) + (freqIdx<<2) +(chanCfg>>2));
@@ -115,57 +116,38 @@ public class AudioDecoder extends Thread{
                         temp = new byte[len-2];
                         System.arraycopy(audioData, 13, temp, 0 ,len-2);
 
-                        inputBuffer.put(temp);
+                        inputBuffer.put(temp, 0, temp.length);
+                        mMediaDecode.queueInputBuffer(inputBufferIndex, 0, temp.length, System.nanoTime() / 1000, 0);
                     }
 
-                    mMediaDecode.queueInputBuffer(inputBufferIndex, 0, audioData.length, System.nanoTime() / 1000, 0);
                 }
 
 
-               /* int outputBufferIndex = mMediaDecode.dequeueOutputBuffer(info, 1000);
-                while (outputBufferIndex >= 0) {
-                    ByteBuffer outputBuffer = outputBuffers[outputBufferIndex];
-                    outputBuffer.position(0);
-                    byte[] outData = new byte[info.size];
-                    outputBuffer.get(outData);
-                    audioTrack.write(outData, 0, outData.length);
-                    Log.i(TAG, outData.length + " bytes decoded");
-                }*/
+
                long startMs = System.currentTimeMillis();
                int outIndex = mMediaDecode.dequeueOutputBuffer(info, 10000);
                switch (outIndex) {
                    case MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED:
-                       Log.i("MyActivity", "INFO_OUTPUT_BUFFERS_CHANGED");
+                       Log.i(TAG, "INFO_OUTPUT_BUFFERS_CHANGED");
                        outputBuffers = mMediaDecode.getOutputBuffers();
                        break;
                    case MediaCodec.INFO_OUTPUT_FORMAT_CHANGED:
                        Log.i("MyActivity", "New format " + mMediaDecode.getOutputFormat());
                        break;
                    case MediaCodec.INFO_TRY_AGAIN_LATER:
-                       Log.i("MyActivity", "dequeueOutputBuffer timed out!");
+                       Log.i(TAG, "dequeueOutputBuffer timed out!");
                        break;
                    default:
                        ByteBuffer outputBuffer = outputBuffers[outIndex];
 
-                       Log.v("MyActivity", "We can't use this buffer but render it due to the API limit, " + outputBuffer);
-
-                       // We use a very simple clock to keep the video FPS, or the video
-                       // playback will be too fast
-                       while (info.presentationTimeUs / 1000 > System.currentTimeMillis() - startMs) {
-                           try {
-                               Thread.sleep(20);
-                           } catch (InterruptedException e) {
-                               e.printStackTrace();
-                               break;
-                           }
-                       }
+                       Log.v(TAG, "We can't use this buffer but render it due to the API limit, " + outputBuffer);
                        outputBuffer.position(0);
-                       byte[] outData = new byte[info.size];
+                       final byte[] outData = new byte[info.size];
                        outputBuffer.get(outData);
                        audioTrack.write(outData, 0, outData.length);
                        Log.i(TAG, outData.length + " bytes decoded");
-                       Log.i("MyActivity", "releaseOutputBuffer");
-                       mMediaDecode.releaseOutputBuffer(outIndex, true);
+                       Log.i(TAG, "releaseOutputBuffer");
+                       mMediaDecode.releaseOutputBuffer(outIndex, false);
                        break;
 
                }
@@ -175,6 +157,11 @@ public class AudioDecoder extends Thread{
                    Log.i("MyActivity", "OutputBuffer BUFFER_FLAG_END_OF_STREAM");
                    mMediaDecode.stop();
                    mMediaDecode.release();
+                   if(audioTrack != null) {
+                       audioTrack.flush();
+                       audioTrack.release();
+                       audioTrack = null;
+                   }
                }
             }
 
