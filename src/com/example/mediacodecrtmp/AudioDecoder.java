@@ -49,6 +49,7 @@ public class AudioDecoder extends Thread{
         // configure AudioTrack
         int channelConfiguration = AudioFormat.CHANNEL_OUT_STEREO;
         int minSize = AudioTrack.getMinBufferSize(44100, channelConfiguration, AudioFormat.ENCODING_PCM_16BIT);
+
         audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, 44100, channelConfiguration,
                 AudioFormat.ENCODING_PCM_16BIT, minSize, AudioTrack.MODE_STREAM);
 
@@ -65,54 +66,10 @@ public class AudioDecoder extends Thread{
                     int len = -1;
                     ByteBuffer inputBuffer = inputBuffers[inputBufferIndex];
                     inputBuffer.clear();
-                    /*if (audioData[0] == 0x08 && audioData[12] == 0x00) {
-                        byte[] fisrtData = new byte[2];
-                        fisrtData[0] = audioData[13];
-                        fisrtData[1] = audioData[14];
-                        inputBuffer.put(fisrtData);
-                    } else */if(audioData[0] == 0x08 && audioData[12] == 0x01){
+                    if(audioData[0] == 0x08 && audioData[12] == 0x01){
                         len = (audioData[2] & 0x000000FF) << 8 | audioData[3] & 0x000000FF;
 
-                        // test1:AF开头所有数据喂给解码器
-//                        temp = new byte[len];
-//                        System.arraycopy(audioData, 11, temp, 0 ,len);
-
-                        // test2:  -2：去除 af 01两个字节；+7：adts的7个字节
-//                        int packetLen = len -2 + 7; // -2：去除 af 01两个字节；+7：adts的7个字节
-//                        temp = new byte[packetLen];
-//
-//                        int profile = 2;  //AAC LC
-//                                          //39=MediaCodecInfo.CodecProfileLevel.AACObjectELD;
-//                        int freqIdx = 4;  //44.1KHz
-//                        int chanCfg = 2;  //CPE
-
-
-////                        fill in ADTS data
-//                        temp[0] = (byte)0xFF;
-//                        temp[1] = (byte)0xF9;
-//                        temp[2] = (byte)(((profile-1)<<6) + (freqIdx<<2) +(chanCfg>>2));
-//                        temp[3] = (byte)(((chanCfg&3)<<6) + (packetLen>>11));
-//                        temp[4] = (byte)((packetLen&0x7FF) >> 3);
-//                        temp[5] = (byte)(((packetLen&7)<<5) + 0x1F);
-//                        temp[6] = (byte)0xFC;
-//                        System.arraycopy(audioData, 13, temp, 7 ,len - 2);
-
-                        // test3:  增加af 01两个字节；和adts的7个字节
-//                        temp = new byte[len+7];
-//                        temp[0] = (byte)0xAF;
-//                        temp[1] = (byte)0x01;
-//
-//                        temp[2] = (byte)0xFF;
-//                        temp[3] = (byte)0xF9;
-//                        temp[4] = (byte)(((profile-1)<<6) + (freqIdx<<2) +(chanCfg>>2));
-//                        temp[5] = (byte)(((chanCfg&3)<<6) + (packetLen>>11));
-//                        temp[6] = (byte)((packetLen&0x7FF) >> 3);
-//                        temp[7] = (byte)(((packetLen&7)<<5) + 0x1F);
-//                        temp[8] = (byte)0xFC;
-//
-//                        System.arraycopy(audioData, 13, temp, 9 ,len - 2);
-
-                        // test4:去除 af 01两个字节后的数据喂给解码器
+                        // 去除 af 01两个字节后的数据喂给解码器
                         temp = new byte[len-2];
                         System.arraycopy(audioData, 13, temp, 0 ,len-2);
 
@@ -124,7 +81,6 @@ public class AudioDecoder extends Thread{
 
 
 
-               long startMs = System.currentTimeMillis();
                int outIndex = mMediaDecode.dequeueOutputBuffer(info, 10000);
                switch (outIndex) {
                    case MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED:
@@ -132,7 +88,7 @@ public class AudioDecoder extends Thread{
                        outputBuffers = mMediaDecode.getOutputBuffers();
                        break;
                    case MediaCodec.INFO_OUTPUT_FORMAT_CHANGED:
-                       Log.i("MyActivity", "New format " + mMediaDecode.getOutputFormat());
+                       Log.i(TAG, "New format " + mMediaDecode.getOutputFormat());
                        break;
                    case MediaCodec.INFO_TRY_AGAIN_LATER:
                        Log.i(TAG, "dequeueOutputBuffer timed out!");

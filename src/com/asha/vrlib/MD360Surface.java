@@ -50,10 +50,6 @@ public class MD360Surface {
         this.mOnSurfaceReadyListener = onSurfaceReadyListener;
     }
 
-    public Surface getSurface() {
-        return mSurface;
-    }
-
     public void resize(int width, int height) {
         boolean changed = false;
         if (mWidth == width && mHeight == height) changed = true;
@@ -80,24 +76,6 @@ public class MD360Surface {
             if (mOnSurfaceReadyListener != null)
                 mOnSurfaceReadyListener.onSurfaceReady(mSurface);
         }
-/*
-        try {
-            decoder = MediaCodec.createDecoderByType("video/avc");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        byte[] header_sps = {0x00, 0x00, 0x00, 0x01, 0x67, 0x64, 0x00, 0x1f, (byte) 0xac, (byte) 0xd9, 0x40, (byte) 0xfc, (byte) 0x10, 0x79, 0x67, (byte) 0x9a, (byte) 0x80, (byte) 0x86, (byte) 0x83, 0x20, 0x00, 0x00,
-                0x03, (byte) 0x00, 0x20, 0x00, 0x00, (byte) 0x07, (byte) 0x91, (byte) 0xe3, 0x06, 0x32, (byte) 0xc0};
-        byte[] header_pps = {0x00, 0x00, 0x00, 0x01, 0x68, (byte) 0xef, (byte) 0xbc, (byte) 0xb0};
-        MediaFormat mediaFormat = MediaFormat.createVideoFormat("video/avc", 1000, 500);
-        mediaFormat.setByteBuffer("csd-0", ByteBuffer.wrap(header_sps));
-        mediaFormat.setByteBuffer("csd-1", ByteBuffer.wrap(header_pps));
-        decoder.configure(mediaFormat, mSurface, null, 0);
-        if (decoder == null) {
-            Log.e(TAG, "decoder == null");
-            return;
-        }
-        decoder.start();*/
 
     }
 
@@ -193,18 +171,6 @@ public class MD360Surface {
                     RtmpNative.offerAudioData(temp);
 
                 }else if (buf[0] == 0x09 && (buf[11] == 0x17 || buf[11] == 0x27)) {
-                   /* int tagsize = (buf[startIndex + 2] & 0x000000FF << 8 | buf[startIndex + 3] & 0x000000FF) + 10;
-                    for(int i = 0, len = buf.length; i < len; i++) {
-                        if (buf[i] == 0x08 && buf[i+1] == 0x00 && buf[i+11] == (byte)0xaf && buf[i+12] == 0x01) {
-                            // 提取音频帧
-                            Log.i(TAG, "lihb获得音频帧, 第一帧no------------------");
-                            int length = (buf[i + 2] & 0x000000FF << 8 | buf[i + 3] & 0x000000FF);
-                            temp = new byte[length+11];
-                            System.arraycopy(buf, i, temp, 0, length+11);
-                            RtmpNative.offerAudioData(temp);
-                        }
-                    }*/
-
                     if (buf[12] == 0x00) {
                         if (header_pps != null && header_sps != null) {
                             return;

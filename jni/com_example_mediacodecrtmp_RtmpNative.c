@@ -94,8 +94,8 @@ JNIEXPORT jint JNICALL Java_com_example_mediacodecrtmp_RtmpNative_naTest
 	// HKS's live URL
 //  if(!RTMP_SetupURL(rtmp,"rtmp://183.61.143.98/flvplayback/mp4:panvideo1.mp4"))
 //	if(!RTMP_SetupURL(rtmp,"rtmp://live.hkstv.hk.lxdns.com/live/hks"))
-//	if(!RTMP_SetupURL(rtmp,"rtmp://183.60.140.6/ent/91590716_91590716_10057"))
-	if(!RTMP_SetupURL(rtmp,"rtmp://183.61.143.98/flvplayback/test"))
+	if(!RTMP_SetupURL(rtmp,"rtmp://183.60.140.6/ent/91590716_91590716_10057"))
+//	if(!RTMP_SetupURL(rtmp,"rtmp://183.61.143.98/flvplayback/test"))
 	{
 		RTMP_Log(RTMP_LOGERROR,"SetupURL Err\n");
 		RTMP_Free(rtmp);
@@ -202,7 +202,7 @@ static void* parseRtmpData(void *arg){
 	      }*/
 
 	      memset(buf,0,bufsize);
-	      usleep(10 *1000);
+//	      usleep(10 *1000);
 
 	}
 
