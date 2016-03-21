@@ -3,6 +3,7 @@ package com.asha.vrlib;
 import android.content.res.Resources;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
+import android.util.Log;
 import android.view.MotionEvent;
 
 /**
@@ -21,13 +22,17 @@ public class MD360Director {
     private float[] mMVMatrix = new float[16];
     private float[] mMVPMatrix = new float[16];
 
-    private float mEyeZ = 12.5f;
+    private float mEyeZ = 10.f;
     private float mAngle = 0;
     private float mRatio = 1.5f;
     private float mNear = 1.55f;
     private float[] mCurrentRotation = new float[16];
     private float[] mAccumulatedRotation = new float[16];
     private float[] mTemporaryMatrix = new float[16];
+
+    private static final float DEGREE = 50.0f;  //度数的弧度值
+
+    private float sumY = 0.0f;
 
     public MD360Director() {
         initCamera();
@@ -57,6 +62,8 @@ public class MD360Director {
                 float deltaY = (y - mPreviousY) / sDensity / sDamping;
                 mDeltaX -= deltaX;
                 mDeltaY -= deltaY;
+
+                Log.i(TAG, "mDeltaY = " + mDeltaY+" ,mDeltaX =" + mDeltaX);
             }
             mPreviousX = x;
             mPreviousY = y;
@@ -83,28 +90,37 @@ public class MD360Director {
         Matrix.setIdentityM(mModelMatrix, 0);
 
         Matrix.setIdentityM(mCurrentRotation, 0);
+        sumY += mDeltaY;
+        if (sumY > DEGREE) {
+            mDeltaY = 0.0f;
+            sumY-=0.01f;
+        } else if (sumY < -DEGREE) {
+            mDeltaY = 0.0f;
+            sumY+=0.01f;
+        }
         Matrix.rotateM(mCurrentRotation, 0, mDeltaX, 0.0f, 1.0f, 0.0f);
         Matrix.rotateM(mCurrentRotation, 0, mDeltaY, 1.0f, 0.0f, 0.0f);
         mDeltaX = 0.0f;
         mDeltaY = 0.0f;
-
         // Multiply the current rotation by the accumulated rotation, and then
         // set the accumulated rotation to the result.
         Matrix.multiplyMM(mTemporaryMatrix, 0, mCurrentRotation, 0, mAccumulatedRotation, 0);
         System.arraycopy(mTemporaryMatrix, 0, mAccumulatedRotation, 0, 16);
-
         // Rotate the cube taking the overall rotation into account.
         Matrix.multiplyMM(mTemporaryMatrix, 0, mModelMatrix, 0, mAccumulatedRotation, 0);
         System.arraycopy(mTemporaryMatrix, 0, mModelMatrix, 0, 16);
+//        Log.i("3mAccumulatedRota---->", Arrays.toString(mAccumulatedRotation));
 
         // This multiplies the view matrix by the model matrix, and stores the result in the MVP matrix
         // (which currently contains model * view).
         Matrix.multiplyMM(mMVMatrix, 0, mViewMatrix, 0, mModelMatrix, 0);
+//        Log.i("4mMVMatrix---->", Arrays.toString(mMVMatrix));
 
         // This multiplies the model view matrix by the projection matrix, and stores the result in the MVP matrix
         // (which now contains model * view * projection).
         Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mMVMatrix, 0);
-
+//        Log.i("5mMVMatrix---->", Arrays.toString(mMVMatrix));
+//        Log.i("5mMVPMatrix---->", Arrays.toString(mMVPMatrix));
         // Pass in the model view matrix
         GLES20.glUniformMatrix4fv(program.getMVMatrixHandle(), 1, false, mMVMatrix, 0);
 
@@ -145,7 +161,7 @@ public class MD360Director {
         final float right = mRatio;
         final float bottom = -0.5f;
         final float top = 0.5f;
-        final float far = 500;
+        final float far = 200.0f;
         Matrix.frustumM(mProjectionMatrix, 0, left, right, bottom, top, mNear, far);
     }
 }

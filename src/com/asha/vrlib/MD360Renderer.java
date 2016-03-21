@@ -56,7 +56,7 @@ public class MD360Renderer implements GLSurfaceView.Renderer {
 	}
 
 	@Override
-	public void onSurfaceChanged(GL10 glUnused, int width, int height){
+	public void onSurfaceChanged(GL10 gl10, int width, int height){
 		// Set the OpenGL viewport to the same size as the surface.
 		GLES20.glViewport(0, 0, width, height);
 

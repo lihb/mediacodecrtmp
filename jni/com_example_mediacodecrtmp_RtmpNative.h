@@ -18,7 +18,7 @@ void CleanuptReceiveSockets();
  * Signature: ()I
  */
 JNIEXPORT jint JNICALL Java_com_example_mediacodecrtmp_RtmpNative_naTest
-  (JNIEnv *, jobject);
+  (JNIEnv *, jobject, jstring);
 
 static void* parseRtmpData(void *arg);
 

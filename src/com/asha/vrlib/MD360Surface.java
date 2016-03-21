@@ -117,7 +117,7 @@ public class MD360Surface {
 
         if (DataManager.getInstance().inputBytesQueue.size() > 0) {
             byte[] buf = DataManager.getInstance().inputBytesQueue.poll();
-            Log.i(TAG, "inIndex >= 0, inputBytesQueue.poll()");
+//            Log.i(TAG, "inIndex >= 0, inputBytesQueue.poll()");
             int startIndex = 0;
             byte[] temp = null;
             if (buf != null) {
@@ -155,11 +155,11 @@ public class MD360Surface {
                             initDecoder(startIndex, buf);
                         }else if (buf[i] == 0x08 && buf[i+1] == 0x00 && buf[i+11] == (byte)0xaf && buf[i+12] == 0x00) {
                             // 提取音频帧
-                            Log.i(TAG, "lihb获得音频帧, 第一帧yes------------------");
-                            int length = (buf[i + 2] & 0x000000FF) << 8 | buf[i + 3] & 0x000000FF;
-                            temp = new byte[length+11];
-                            System.arraycopy(buf, i, temp, 0, length+11);
-                            RtmpNative.offerAudioData(temp);
+//                            Log.i(TAG, "lihb获得音频帧, 第一帧yes------------------");
+//                            int length = (buf[i + 2] & 0x000000FF) << 8 | buf[i + 3] & 0x000000FF;
+//                            temp = new byte[length+11];
+//                            System.arraycopy(buf, i, temp, 0, length+11);
+//                            RtmpNative.offerAudioData(temp);
                         }
 
                     }
@@ -182,7 +182,7 @@ public class MD360Surface {
 
                     } else if (buf[12] == 0x01) {
                         // 提取nalu帧数据
-                        Log.i(TAG, "lihb提取nalu帧数据");
+//                        Log.i(TAG, "lihb提取nalu帧数据");
 
                         startIndex = 16;
                         int len = (buf[startIndex] & 0x000000FF) << 24 | (buf[startIndex + 1] & 0x000000FF) << 16 |
@@ -235,19 +235,19 @@ public class MD360Surface {
                                 default:
                                     ByteBuffer outputBuffer = outputBuffers[outIndex];
 
-                                    Log.v("MyActivity", "We can't use this buffer but render it due to the API limit, " + outputBuffer);
+//                                    Log.v("MyActivity", "We can't use this buffer but render it due to the API limit, " + outputBuffer);
 
                                     // We use a very simple clock to keep the video FPS, or the video
                                     // playback will be too fast
-                                    while (info.presentationTimeUs / 1000 > System.currentTimeMillis() - startMs) {
+                                  /*  while (info.presentationTimeUs / 1000 > System.currentTimeMillis() - startMs) {
                                         try {
                                             Thread.sleep(20);
                                         } catch (InterruptedException e) {
                                             e.printStackTrace();
                                             break;
                                         }
-                                    }
-                                    Log.i("MyActivity", "releaseOutputBuffer");
+                                    }*/
+//                                    Log.i("MyActivity", "releaseOutputBuffer");
                                     decoder.releaseOutputBuffer(outIndex, true);
                                     break;
 

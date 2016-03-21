@@ -28,7 +28,7 @@ public class VRActivity extends Activity {
         setContentView(R.layout.activity_md_render);
 
         RtmpNative rtmpNative = new RtmpNative(DataManager.getInstance().inputBytesQueue, DataManager.getInstance().inputAudioBytesQueue);
-        rtmpNative.naTest();
+        rtmpNative.naTest("rtmp://183.60.140.6/ent/91590716_91590716_10057");
         new AudioDecoder().start();
 
         mRenderer = MD360Renderer.with(this)

@@ -55,7 +55,7 @@ void CleanuptReceiveSockets(){
  * Signature: (Ljava/lang/String;)I
  */
 JNIEXPORT jint JNICALL Java_com_example_mediacodecrtmp_RtmpNative_naTest
-  (JNIEnv *pEnv, jobject pObj){
+  (JNIEnv *pEnv, jobject pObj, jstring rtmpAddress){
 
 	 //全局化变量
     (*pEnv)->GetJavaVM(pEnv, &gJavaVM);
@@ -63,8 +63,8 @@ JNIEXPORT jint JNICALL Java_com_example_mediacodecrtmp_RtmpNative_naTest
     gJavaClass = (jclass)(*pEnv)->NewGlobalRef(pEnv,clazz);
 
     gMethodID = (*pEnv)->GetStaticMethodID(pEnv,gJavaClass,"offerAvcData","([B)Z");
-//    gAudioMethodID = (*pEnv)->GetStaticMethodID(pEnv,gJavaClass,"offerAudioData","([B)Z");
 
+    char *videoFileName = (char *)(*pEnv)->GetStringUTFChars(pEnv, rtmpAddress, NULL);
 
     InitReceiveSockets();
 	LOGI("enter naTest method()");
@@ -94,8 +94,9 @@ JNIEXPORT jint JNICALL Java_com_example_mediacodecrtmp_RtmpNative_naTest
 	// HKS's live URL
 //  if(!RTMP_SetupURL(rtmp,"rtmp://183.61.143.98/flvplayback/mp4:panvideo1.mp4"))
 //	if(!RTMP_SetupURL(rtmp,"rtmp://live.hkstv.hk.lxdns.com/live/hks"))
-	if(!RTMP_SetupURL(rtmp,"rtmp://183.60.140.6/ent/91590716_91590716_10057"))
+//	if(!RTMP_SetupURL(rtmp,"rtmp://183.60.140.6/ent/91590716_91590716_10057"))
 //	if(!RTMP_SetupURL(rtmp,"rtmp://183.61.143.98/flvplayback/test"))
+	if(!RTMP_SetupURL(rtmp,videoFileName))
 	{
 		RTMP_Log(RTMP_LOGERROR,"SetupURL Err\n");
 		RTMP_Free(rtmp);
@@ -167,8 +168,8 @@ static void* parseRtmpData(void *arg){
            (*threadEnv)->CallStaticBooleanMethod(threadEnv, gJavaClass, gMethodID, jarray);
 
            countbufsize+=nRead;
-           RTMP_LogPrintf("Receive: %5dByte, Total: %5.2fkB\n",nRead,countbufsize*1.0/1024);
-           LOGI("Receive: %5dByte, Total: %5.2fkB\n",nRead,countbufsize*1.0/1024);
+//           RTMP_LogPrintf("Receive: %5dByte, Total: %5.2fkB\n",nRead,countbufsize*1.0/1024);
+//           LOGI("Receive: %5dByte, Total: %5.2fkB\n",nRead,countbufsize*1.0/1024);
            (*threadEnv)->DeleteLocalRef(threadEnv, jarray);
          /* double framerate = 0.0;
 	      if(buf[0] == 0x46 && buf[1] == 0x4c && buf[2] == 0x56 && buf[13] == 0x12){

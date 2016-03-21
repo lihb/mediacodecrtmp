@@ -27,7 +27,7 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback {
         sv.getHolder().addCallback(this);
         setContentView(sv);
         RtmpNative rtmpNative = new RtmpNative(DataManager.getInstance().inputBytesQueue, DataManager.getInstance().inputAudioBytesQueue);
-        rtmpNative.naTest();
+        rtmpNative.naTest("rtmp://183.60.140.6/ent/91590716_91590716_10057");
 
 
     }
