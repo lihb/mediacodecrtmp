@@ -3,6 +3,7 @@ package com.example.mediacodecrtmp;
 import android.app.Activity;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.*;
 import android.widget.Toast;
 import com.asha.vrlib.MD360Renderer;
@@ -14,8 +15,11 @@ import com.asha.vrlib.common.GLUtil;
  */
 public class VRActivity extends Activity {
 
+    private static final String TAG = "VRActivity";
     private GLSurfaceView mGLSurfaceView;
     private MD360Renderer mRenderer;
+    private RtmpNative mRtmpNative;
+    private AudioDecoder mAudioDecoder;
 
 
     @Override
@@ -27,9 +31,10 @@ public class VRActivity extends Activity {
 
         setContentView(R.layout.activity_md_render);
 
-        RtmpNative rtmpNative = new RtmpNative(DataManager.getInstance().inputBytesQueue, DataManager.getInstance().inputAudioBytesQueue);
-        rtmpNative.naTest("rtmp://183.60.140.6/ent/91590716_91590716_10057");
-        new AudioDecoder().start();
+        mRtmpNative = new RtmpNative(DataManager.getInstance().inputBytesQueue, DataManager.getInstance().inputAudioBytesQueue);
+        mRtmpNative.naTest("rtmp://183.60.140.6/ent/91590716_91590716_10057");
+        mAudioDecoder = new AudioDecoder();
+        mAudioDecoder.start();
 
         mRenderer = MD360Renderer.with(this)
                 .defaultSurface(new MD360Surface.IOnSurfaceReadyListener() {
@@ -85,5 +90,10 @@ public class VRActivity extends Activity {
         if (mRenderer != null) {
             mRenderer.release();
         }
+        Log.i(TAG, "onDestory");
+        mRtmpNative.naStopThread();
+        mAudioDecoder.stopAudioThread();
+        DataManager.getInstance().inputBytesQueue.clear();
+        DataManager.getInstance().inputAudioBytesQueue.clear();
     }
 }

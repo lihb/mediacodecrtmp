@@ -35,6 +35,8 @@ char *buf;
 long countbufsize;
 RTMP *rtmp;
 
+static volatile int gIsThreadExit = 0;
+
 int InitReceiveSockets(){
     #ifdef WIN32
         WORD version;
@@ -128,6 +130,7 @@ JNIEXPORT jint JNICALL Java_com_example_mediacodecrtmp_RtmpNative_naTest
 
   	pthread_t decodeThread;
     LOGI("naPlay() current thread id = %lu", pthread_self());
+    gIsThreadExit = 0;
     return pthread_create(&decodeThread, NULL, parseRtmpData, NULL);
 }
 /**
@@ -155,7 +158,7 @@ static void* parseRtmpData(void *arg){
     LOGI("decodeVideo() --attach thread, status = %d" , status);
 
 
-	while(nRead=RTMP_Read(rtmp,buf,bufsize)){
+	while(nRead=RTMP_Read(rtmp,buf,bufsize) && !gIsThreadExit){
 	       jbyte *by = (jbyte*)buf;
            jbyteArray jarray = (*threadEnv)->NewByteArray(threadEnv, bufsize);
            (*threadEnv)->SetByteArrayRegion(threadEnv, jarray, 0, bufsize, by);
@@ -218,15 +221,25 @@ static void* parseRtmpData(void *arg){
 		rtmp=NULL;
 	}
 	 // 销毁全局对象
-    (*threadEnv)->DeleteGlobalRef(threadEnv, gJavaClass);
-    (*threadEnv)->DeleteGlobalRef(threadEnv, gMethodID);
+//    (*threadEnv)->DeleteGlobalRef(threadEnv, gJavaClass);
+//    (*threadEnv)->DeleteGlobalRef(threadEnv, gMethodID);
 //    (*threadEnv)->DeleteGlobalRef(threadEnv, gAudioMethodID);
 //    (*threadEnv)->DeleteGlobalRef(threadEnv, gArray);
     //释放当前线程
     (*gJavaVM)->DetachCurrentThread(gJavaVM);
     pthread_exit(0);
-    LOGI("thread stopdddd....");
+    LOGI("thread stopped....");
 
+}
+
+/*
+ * Class:     Java_com_example_mediacodecrtmp_RtmpNative_naTest
+ * Method:    naTest
+ * Signature: (Ljava/lang/String;)I
+ */
+JNIEXPORT void JNICALL Java_com_example_mediacodecrtmp_RtmpNative_naStopThread
+  (JNIEnv *pEnv, jobject pObj){
+  gIsThreadExit = 1;
 }
 
 #ifdef __cplusplus

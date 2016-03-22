@@ -20,6 +20,9 @@ void CleanuptReceiveSockets();
 JNIEXPORT jint JNICALL Java_com_example_mediacodecrtmp_RtmpNative_naTest
   (JNIEnv *, jobject, jstring);
 
+JNIEXPORT void JNICALL Java_com_example_mediacodecrtmp_RtmpNative_naStopThread
+  (JNIEnv *, jobject);
+
 static void* parseRtmpData(void *arg);
 
 #ifdef __cplusplus

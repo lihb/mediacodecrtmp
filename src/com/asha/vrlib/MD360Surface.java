@@ -114,7 +114,6 @@ public class MD360Surface {
         if (mGlSurfaceTexture == SURFACE_TEXTURE_EMPTY)
             return;
 
-
         if (DataManager.getInstance().inputBytesQueue.size() > 0) {
             byte[] buf = DataManager.getInstance().inputBytesQueue.poll();
 //            Log.i(TAG, "inIndex >= 0, inputBytesQueue.poll()");
@@ -153,15 +152,7 @@ public class MD360Surface {
 
                             startIndex = i + 22;
                             initDecoder(startIndex, buf);
-                        }else if (buf[i] == 0x08 && buf[i+1] == 0x00 && buf[i+11] == (byte)0xaf && buf[i+12] == 0x00) {
-                            // 提取音频帧
-//                            Log.i(TAG, "lihb获得音频帧, 第一帧yes------------------");
-//                            int length = (buf[i + 2] & 0x000000FF) << 8 | buf[i + 3] & 0x000000FF;
-//                            temp = new byte[length+11];
-//                            System.arraycopy(buf, i, temp, 0, length+11);
-//                            RtmpNative.offerAudioData(temp);
                         }
-
                     }
 
                 }else if (buf[0] == 0x08 && (buf[1] == 0x00 || buf[11] == (byte)0xaf && buf[12] == 0x01)) {
@@ -171,7 +162,9 @@ public class MD360Surface {
                     RtmpNative.offerAudioData(temp);
 
                 }else if (buf[0] == 0x09 && (buf[11] == 0x17 || buf[11] == 0x27)) {
+
                     if (buf[12] == 0x00) {
+                        // 视频帧
                         if (header_pps != null && header_sps != null) {
                             return;
                         }
@@ -202,9 +195,8 @@ public class MD360Surface {
 
                         long startMs = System.currentTimeMillis();
                         int sampleSize = temp.length;
-
                         int inIndex = decoder.dequeueInputBuffer(0);
-                        Log.i(TAG, "inIndex = " + inIndex);
+//                        Log.i(TAG, "inIndex = " + inIndex);
                         if (inIndex >= 0) {
                             ByteBuffer buffer = inputBuffers[inIndex];
                             buffer.clear();

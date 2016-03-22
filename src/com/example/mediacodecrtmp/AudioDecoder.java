@@ -21,6 +21,7 @@ public class AudioDecoder extends Thread{
 
     private MediaCodec.BufferInfo info;
 
+    private boolean isThreadStop = false;
 
     private AudioTrack audioTrack;
 
@@ -57,8 +58,9 @@ public class AudioDecoder extends Thread{
         // start playing, we will feed the AudioTrack later
         audioTrack.play();
         byte[] temp = null;
-
-        while (!Thread.interrupted()) {
+        isThreadStop = true;
+        while (isThreadStop) {
+//           Log.i(TAG, "in AudioDecoder  while...");
            if (DataManager.getInstance().inputAudioBytesQueue.size() > 0) {
                 byte[] audioData = DataManager.getInstance().inputAudioBytesQueue.poll();// 提取出音频数据
 
@@ -111,7 +113,7 @@ public class AudioDecoder extends Thread{
 
                // All decoded frames have been rendered, we can stop playing now
                if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-                   Log.i("MyActivity", "OutputBuffer BUFFER_FLAG_END_OF_STREAM");
+                   Log.i(TAG, "OutputBuffer BUFFER_FLAG_END_OF_STREAM");
                    mMediaDecode.stop();
                    mMediaDecode.release();
                    if(audioTrack != null) {
@@ -124,5 +126,11 @@ public class AudioDecoder extends Thread{
 
         }
 
+        Log.i(TAG, "AudioDecoder Thread is stopped....");
+
+    }
+
+    public void stopAudioThread() {
+        isThreadStop = false;
     }
 }
