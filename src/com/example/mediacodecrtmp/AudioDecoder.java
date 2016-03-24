@@ -69,14 +69,21 @@ public class AudioDecoder extends Thread{
                     int len = -1;
                     ByteBuffer inputBuffer = inputBuffers[inputBufferIndex];
                     inputBuffer.clear();
-                    if(audioData[0] == 0x08 && audioData[12] == 0x01){
+                    if(audioData[0] == 0x08 && audioData[12] == 0x00){
+                        temp = new byte[2];
+                        System.arraycopy(audioData, 13, temp, 0 ,temp.length);
+
+                        inputBuffer.put(temp);
+                        mMediaDecode.queueInputBuffer(inputBufferIndex, 0, temp.length, 0, 0);
+                    }
+                    else if(audioData[0] == 0x08 && audioData[12] == 0x01){
                         len = (audioData[2] & 0x000000FF) << 8 | audioData[3] & 0x000000FF;
 
                         // 去除 af 01两个字节后的数据喂给解码器
                         temp = new byte[len-2];
-                        System.arraycopy(audioData, 13, temp, 0 ,len-2);
+                        System.arraycopy(audioData, 13, temp, 0 ,temp.length);
 
-                        inputBuffer.put(temp, 0, temp.length);
+                        inputBuffer.put(temp);
                         mMediaDecode.queueInputBuffer(inputBufferIndex, 0, temp.length, 0, 0);
                     }
 

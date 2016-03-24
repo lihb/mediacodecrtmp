@@ -1,7 +1,5 @@
 package com.example.mediacodecrtmp;
 
-import android.util.Log;
-
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -18,7 +16,7 @@ public class RtmpNative {
     }
 
     public static boolean offerAvcData(byte[] inputbuf) {
-        Log.i("test offerAvcData()", inputQueue.toString());
+//        Log.i("test offerAvcData()", inputQueue.toString());
         return inputQueue.offer(inputbuf);
     }
 
