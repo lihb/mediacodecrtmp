@@ -38,7 +38,7 @@ public class MainActivity extends Activity{
                 Log.i(TAG, "rtmp地址是:" + rtmpVideoPath);
 
                 Intent intent = new Intent(MainActivity.this, VRActivity.class);
-                intent.putExtra("rtmpAdress", rtmpVideoPath);
+                intent.putExtra("playAddress", rtmpVideoPath);
                 startActivity(intent);
             }
         });

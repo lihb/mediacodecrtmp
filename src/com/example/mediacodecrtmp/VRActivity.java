@@ -31,12 +31,12 @@ public class VRActivity extends Activity {
 
         setContentView(R.layout.activity_md_render);
 
-        String playAdress = getIntent().getStringExtra("rtmpAdress");
-        if (playAdress == null || playAdress.isEmpty()) {
-            playAdress = "rtmp://183.60.140.6/ent/91590716_91590716_10057";
+        String playAddress = getIntent().getStringExtra("rtmpAddress");
+        if (playAddress == null || playAddress.isEmpty()) {
+            playAddress = "rtmp://183.60.140.6/ent/91590716_91590716_10057";
         }
         mRtmpNative = new RtmpNative(DataManager.getInstance().inputBytesQueue, DataManager.getInstance().inputAudioBytesQueue);
-        mRtmpNative.naTest(playAdress);
+        mRtmpNative.naTest(playAddress);
         mAudioDecoder = new AudioDecoder();
         mAudioDecoder.start();
 
